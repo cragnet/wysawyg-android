@@ -1,15 +1,38 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/overlayContainer"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:padding="8dp">
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:padding="8dp"
+    android:background="@drawable/overlay_background"
+    android:visibility="visible">
 
     <ImageButton
-        android:id="@+id/recordButton"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
-        android:background="@drawable/circle_button"
-        android:src="@android:drawable/ic_btn_speak_now"
-        android:contentDescription="Record" />
+        android:id="@+id/cancelButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/circle_button_dark"
+        android:src="@android:drawable/ic_menu_close_clear_cancel"
+        android:contentDescription="Cancel"
+        android:padding="12dp" />
 
-</FrameLayout>
+    <View
+        android:id="@+id/waveformView"
+        android:layout_width="120dp"
+        android:layout_height="48dp"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="12dp"
+        android:background="@drawable/waveform_background" />
+
+    <ImageButton
+        android:id="@+id/acceptButton"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/circle_button_accent"
+        android:src="@android:drawable/ic_menu_save"
+        android:contentDescription="Accept"
+        android:padding="12dp" />
+
+</LinearLayout>

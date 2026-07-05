@@ -22,7 +22,9 @@ class TextInjectorService : AccessibilityService() {
                 WysawygLogger.w("Accessibility service not enabled — copying to clipboard")
                 copyToClipboard(context, text)
                 Toast.makeText(context, "Enable Wysawyg accessibility service to insert text automatically", Toast.LENGTH_LONG).show()
-                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
+                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                })
             } else {
                 instance?.performInjection(text)
             }
@@ -49,11 +51,23 @@ class TextInjectorService : AccessibilityService() {
                     val node = event.source
                     if (node != null && node.isEditable) {
                         focusedEditableNode = node
+                        OverlayService.setVisible(true)
                         WysawygLogger.d("Focused editable node: ${node.className} ${node.viewIdResourceName}")
+                    } else if (node != null && !node.isEditable) {
+                        val root = rootInActiveWindow
+                        val focused = root?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
+                        if (focused?.isEditable == true) {
+                            focusedEditableNode = focused
+                            OverlayService.setVisible(true)
+                            WysawygLogger.d("Focused editable node from root: ${focused.className}")
+                        }
                     }
                 } catch (e: Exception) {
                     WysawygLogger.e("Error handling accessibility event", e)
                 }
+            }
+            AccessibilityEvent.TYPE_VIEW_CLICKED -> {
+                // If user taps outside an editable field, optionally hide overlay
             }
         }
     }
