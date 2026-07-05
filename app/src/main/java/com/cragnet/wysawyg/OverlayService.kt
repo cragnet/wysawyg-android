@@ -112,56 +112,62 @@ class OverlayService : Service() {
     }
 
     private fun showOverlay() {
-        hideMiniTrigger()
-        if (overlayView != null) {
-            overlayView?.visibility = View.VISIBLE
-            return
-        }
-
-        overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_button, null)
-        cancelButton = overlayView!!.findViewById(R.id.cancelButton)
-        acceptButton = overlayView!!.findViewById(R.id.acceptButton)
-        waveformView = overlayView!!.findViewById(R.id.waveformView)
-
-        overlayParams = WindowManager.LayoutParams(
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            WindowManager.LayoutParams.WRAP_CONTENT,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 50
-            y = 200
-        }
-
-        windowManager.addView(overlayView, overlayParams)
-
-        setIdleState()
-        makeDraggable(overlayView!!, overlayParams)
-
-        cancelButton.setOnClickListener {
-            if (isRecording) {
-                cancelRecording()
-            } else {
-                hideOverlay()
-                showMiniTrigger()
+        try {
+            hideMiniTrigger()
+            if (overlayView != null) {
+                overlayView?.visibility = View.VISIBLE
+                return
             }
-        }
 
-        acceptButton.setOnClickListener {
-            if (isRecording) {
-                stopAndTranscribe()
-            }
-        }
+            overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_button, null)
+            cancelButton = overlayView!!.findViewById(R.id.cancelButton)
+            acceptButton = overlayView!!.findViewById(R.id.acceptButton)
+            waveformView = overlayView!!.findViewById(R.id.waveformView)
 
-        waveformView.setOnClickListener {
-            if (!isRecording) {
-                startRecording()
-            } else {
-                stopAndTranscribe()
+            overlayParams = WindowManager.LayoutParams(
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                WindowManager.LayoutParams.WRAP_CONTENT,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                else WindowManager.LayoutParams.TYPE_PHONE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = 50
+                y = 200
             }
+
+            windowManager.addView(overlayView, overlayParams)
+
+            setIdleState()
+            makeDraggable(overlayView!!, overlayParams)
+
+            cancelButton.setOnClickListener {
+                if (isRecording) {
+                    cancelRecording()
+                } else {
+                    hideOverlay()
+                    showMiniTrigger()
+                }
+            }
+
+            acceptButton.setOnClickListener {
+                if (isRecording) {
+                    stopAndTranscribe()
+                }
+            }
+
+            waveformView.setOnClickListener {
+                if (!isRecording) {
+                    startRecording()
+                } else {
+                    stopAndTranscribe()
+                }
+            }
+            WysawygLogger.i("Overlay shown")
+        } catch (e: Exception) {
+            WysawygLogger.e("Failed to show overlay", e)
+            Toast.makeText(this, "Overlay failed: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
@@ -173,28 +179,33 @@ class OverlayService : Service() {
     }
 
     private fun showMiniTrigger() {
-        if (miniTriggerView != null) return
+        try {
+            if (miniTriggerView != null) return
 
-        miniTriggerView = LayoutInflater.from(this).inflate(R.layout.mini_trigger, null)
-        val button = miniTriggerView!!.findViewById<ImageButton>(R.id.miniRecordButton)
+            miniTriggerView = LayoutInflater.from(this).inflate(R.layout.mini_trigger, null)
+            val button = miniTriggerView!!.findViewById<ImageButton>(R.id.miniRecordButton)
 
-        miniParams = WindowManager.LayoutParams(
-            64, 64,
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
-            else WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
-            PixelFormat.TRANSLUCENT
-        ).apply {
-            gravity = Gravity.TOP or Gravity.START
-            x = 50
-            y = 200
-        }
+            miniParams = WindowManager.LayoutParams(
+                64, 64,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+                else WindowManager.LayoutParams.TYPE_PHONE,
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+                PixelFormat.TRANSLUCENT
+            ).apply {
+                gravity = Gravity.TOP or Gravity.START
+                x = 50
+                y = 200
+            }
 
-        windowManager.addView(miniTriggerView, miniParams)
-        makeDraggable(miniTriggerView!!, miniParams)
+            windowManager.addView(miniTriggerView, miniParams)
+            makeDraggable(miniTriggerView!!, miniParams)
 
-        button.setOnClickListener {
-            showOverlay()
+            button.setOnClickListener {
+                showOverlay()
+            }
+            WysawygLogger.i("Mini trigger shown")
+        } catch (e: Exception) {
+            WysawygLogger.e("Failed to show mini trigger", e)
         }
     }
 
