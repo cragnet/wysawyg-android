@@ -26,7 +26,9 @@ class OverlayService : Service() {
 
     private lateinit var windowManager: WindowManager
     private var overlayView: View? = null
-    private lateinit var params: WindowManager.LayoutParams
+    private var miniTriggerView: View? = null
+    private lateinit var overlayParams: WindowManager.LayoutParams
+    private lateinit var miniParams: WindowManager.LayoutParams
     private lateinit var audioRecorder: AudioRecorder
     private lateinit var ollamaClient: OllamaClient
     private var isRecording = false
@@ -38,24 +40,9 @@ class OverlayService : Service() {
     companion object {
         private const val CHANNEL_ID = "wysawyg_overlay"
         private const val NOTIFICATION_ID = 1
-        private var visible = false
         private var instance: OverlayService? = null
 
-        fun setVisible(show: Boolean) {
-            val service = instance
-            if (service == null) {
-                visible = show
-                return
-            }
-            service.runOnMain {
-                if (show) {
-                    service.showOverlay()
-                } else {
-                    service.hideOverlay()
-                }
-                visible = show
-            }
-        }
+        fun isRunning(): Boolean = instance != null
     }
 
     override fun onCreate() {
@@ -72,18 +59,15 @@ class OverlayService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = buildNotification()
         startForeground(NOTIFICATION_ID, notification)
-        if (visible || TextInjectorService.focusedEditableNode != null) {
-            showOverlay()
-        } else {
-            WysawygLogger.i("Overlay hidden: no focused text field")
-        }
+        WysawygLogger.i("Overlay service started by user")
+        showOverlay()
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
-        hideOverlay()
+        hideAll()
         instance = null
         super.onDestroy()
     }
@@ -116,18 +100,19 @@ class OverlayService : Service() {
             .build()
     }
 
-    private fun hideOverlay() {
+    private fun hideAll() {
         overlayView?.let {
-            try {
-                windowManager.removeView(it)
-            } catch (e: Exception) {
-                WysawygLogger.e("Error removing overlay", e)
-            }
+            try { windowManager.removeView(it) } catch (e: Exception) { WysawygLogger.e("Error removing overlay", e) }
         }
         overlayView = null
+        miniTriggerView?.let {
+            try { windowManager.removeView(it) } catch (e: Exception) { WysawygLogger.e("Error removing mini trigger", e) }
+        }
+        miniTriggerView = null
     }
 
     private fun showOverlay() {
+        hideMiniTrigger()
         if (overlayView != null) {
             overlayView?.visibility = View.VISIBLE
             return
@@ -138,7 +123,7 @@ class OverlayService : Service() {
         acceptButton = overlayView!!.findViewById(R.id.acceptButton)
         waveformView = overlayView!!.findViewById(R.id.waveformView)
 
-        params = WindowManager.LayoutParams(
+        overlayParams = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -151,17 +136,17 @@ class OverlayService : Service() {
             y = 200
         }
 
-        windowManager.addView(overlayView, params)
+        windowManager.addView(overlayView, overlayParams)
 
         setIdleState()
-
-        makeDraggable(overlayView!!)
+        makeDraggable(overlayView!!, overlayParams)
 
         cancelButton.setOnClickListener {
             if (isRecording) {
                 cancelRecording()
             } else {
                 hideOverlay()
+                showMiniTrigger()
             }
         }
 
@@ -178,6 +163,46 @@ class OverlayService : Service() {
                 stopAndTranscribe()
             }
         }
+    }
+
+    private fun hideOverlay() {
+        overlayView?.let {
+            try { windowManager.removeView(it) } catch (e: Exception) { WysawygLogger.e("Error hiding overlay", e) }
+        }
+        overlayView = null
+    }
+
+    private fun showMiniTrigger() {
+        if (miniTriggerView != null) return
+
+        miniTriggerView = LayoutInflater.from(this).inflate(R.layout.mini_trigger, null)
+        val button = miniTriggerView!!.findViewById<ImageButton>(R.id.miniRecordButton)
+
+        miniParams = WindowManager.LayoutParams(
+            64, 64,
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
+            else WindowManager.LayoutParams.TYPE_PHONE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
+            PixelFormat.TRANSLUCENT
+        ).apply {
+            gravity = Gravity.TOP or Gravity.START
+            x = 50
+            y = 200
+        }
+
+        windowManager.addView(miniTriggerView, miniParams)
+        makeDraggable(miniTriggerView!!, miniParams)
+
+        button.setOnClickListener {
+            showOverlay()
+        }
+    }
+
+    private fun hideMiniTrigger() {
+        miniTriggerView?.let {
+            try { windowManager.removeView(it) } catch (e: Exception) { WysawygLogger.e("Error hiding mini trigger", e) }
+        }
+        miniTriggerView = null
     }
 
     private fun setIdleState() {
@@ -250,7 +275,7 @@ class OverlayService : Service() {
         }
     }
 
-    private fun makeDraggable(view: View) {
+    private fun makeDraggable(view: View, layoutParams: WindowManager.LayoutParams) {
         var initialX = 0
         var initialY = 0
         var touchX = 0f
@@ -260,8 +285,8 @@ class OverlayService : Service() {
         view.setOnTouchListener { _, event ->
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    initialX = params.x
-                    initialY = params.y
+                    initialX = layoutParams.x
+                    initialY = layoutParams.y
                     touchX = event.rawX
                     touchY = event.rawY
                     dragging = false
@@ -272,9 +297,9 @@ class OverlayService : Service() {
                     val dy = event.rawY - touchY
                     if (kotlin.math.abs(dx) > 10 || kotlin.math.abs(dy) > 10) {
                         dragging = true
-                        params.x = initialX + dx.toInt()
-                        params.y = initialY + dy.toInt()
-                        windowManager.updateViewLayout(view, params)
+                        layoutParams.x = initialX + dx.toInt()
+                        layoutParams.y = initialY + dy.toInt()
+                        windowManager.updateViewLayout(view, layoutParams)
                     }
                     true
                 }
