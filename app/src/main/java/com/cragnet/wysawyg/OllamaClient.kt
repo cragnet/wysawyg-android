@@ -2,9 +2,6 @@ package com.cragnet.wysawyg
 
 import android.content.Context
 import android.util.Base64
-import android.util.Log
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -21,17 +18,14 @@ class OllamaClient(private val context: Context) {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
-    companion object {
-        private const val TAG = "OllamaClient"
-    }
+    suspend fun transcribe(wavBytes: ByteArray): String = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        val prefs = context.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
+        val url = prefs.getString(MainActivity.PREF_ALARMA_URL, "http://alarma.local:11434/api/chat")!!
+        val apiKey = prefs.getString(MainActivity.PREF_API_KEY, "") ?: ""
+        val model = prefs.getString(MainActivity.PREF_MODEL, "gemma4:12b")!!
+        val systemPrompt = prefs.getString(MainActivity.PREF_SYSTEM_PROMPT, "Transcribe the audio exactly. Output only the spoken words, no commentary.")!!
 
-    suspend fun transcribe(wavBytes: ByteArray): String = withContext(Dispatchers.IO) {
-        val prefs = context.getSharedPreferences("wysawyg", Context.MODE_PRIVATE)
-        val url = prefs.getString("ollama_url", "http://alarma.local:11434/api/chat")!!
-        val model = prefs.getString("model", "gemma4:12b")!!
-        val systemPrompt = prefs.getString("system_prompt", "Transcribe the audio exactly. Output only the spoken words, no commentary.")!!
-
-        WysawygLogger.i("OllamaClient transcribe: url=$url model=$model audio=${wavBytes.size} bytes")
+        WysawygLogger.i("OllamaClient transcribe: url=$url model=$model audio=${wavBytes.size} bytes apiKeyPresent=${apiKey.isNotBlank()}")
 
         val base64Audio = Base64.encodeToString(wavBytes, Base64.NO_WRAP)
 
@@ -60,13 +54,20 @@ class OllamaClient(private val context: Context) {
 
         val body = json.toString().toRequestBody("application/json".toMediaType())
         WysawygLogger.d("Ollama request body length: ${body.contentLength()} bytes")
-        val request = Request.Builder()
+
+        val requestBuilder = Request.Builder()
             .url(url)
             .post(body)
-            .build()
 
+        if (apiKey.isNotBlank()) {
+            requestBuilder.header("Authorization", "Bearer $apiKey")
+            WysawygLogger.d("Authorization header added")
+        }
+
+        val request = requestBuilder.build()
         val response = client.newCall(request).execute()
         val responseBody = response.body?.string() ?: throw RuntimeException("Empty response")
+
         WysawygLogger.i("Ollama response code: ${response.code}")
 
         if (!response.isSuccessful) {

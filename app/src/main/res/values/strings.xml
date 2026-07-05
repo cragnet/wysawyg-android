@@ -4,7 +4,7 @@
     <string name="start_overlay">Start Overlay</string>
     <string name="stop_overlay">Stop Overlay</string>
     <string name="enable_accessibility">Enable Accessibility Service</string>
-    <string name="ollama_url">Ollama URL</string>
+    <string name="alarma_url">Alarma URL</string>
     <string name="model">Model</string>
     <string name="system_prompt">System Prompt</string>
 </resources>

@@ -19,9 +19,15 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val PERMISSION_REQUEST_CODE = 1001
         private const val OVERLAY_REQUEST_CODE = 1002
+        const val PREFS_NAME = "wysawyg"
+        const val PREF_ALARMA_URL = "alarma_url"
+        const val PREF_API_KEY = "api_key"
+        const val PREF_MODEL = "model"
+        const val PREF_SYSTEM_PROMPT = "system_prompt"
     }
 
-    private lateinit var urlInput: EditText
+    private lateinit var alarmaUrlInput: EditText
+    private lateinit var apiKeyInput: EditText
     private lateinit var modelInput: EditText
     private lateinit var promptInput: EditText
 
@@ -31,7 +37,8 @@ class MainActivity : AppCompatActivity() {
 
         WysawygLogger.init(this)
 
-        urlInput = findViewById(R.id.ollamaUrl)
+        alarmaUrlInput = findViewById(R.id.alarmaUrl)
+        apiKeyInput = findViewById(R.id.apiKey)
         modelInput = findViewById(R.id.modelName)
         promptInput = findViewById(R.id.systemPrompt)
 
@@ -125,18 +132,21 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveSettings() {
-        getSharedPreferences("wysawyg", MODE_PRIVATE).edit().apply {
-            putString("ollama_url", urlInput.text.toString().ifBlank { "http://alarma.local:11434/api/chat" })
-            putString("model", modelInput.text.toString().ifBlank { "gemma4:12b" })
-            putString("system_prompt", promptInput.text.toString())
+        getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().apply {
+            putString(PREF_ALARMA_URL, alarmaUrlInput.text.toString().ifBlank { "http://alarma.local:11434/api/chat" })
+            putString(PREF_API_KEY, apiKeyInput.text.toString())
+            putString(PREF_MODEL, modelInput.text.toString().ifBlank { "gemma4:12b" })
+            putString(PREF_SYSTEM_PROMPT, promptInput.text.toString())
             apply()
         }
+        WysawygLogger.i("Settings saved")
     }
 
     private fun loadSettings() {
-        val prefs = getSharedPreferences("wysawyg", MODE_PRIVATE)
-        urlInput.setText(prefs.getString("ollama_url", "http://alarma.local:11434/api/chat"))
-        modelInput.setText(prefs.getString("model", "gemma4:12b"))
-        promptInput.setText(prefs.getString("system_prompt", "Transcribe the audio exactly. Output only the spoken words, no commentary."))
+        val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        alarmaUrlInput.setText(prefs.getString(PREF_ALARMA_URL, "http://alarma.local:11434/api/chat"))
+        apiKeyInput.setText(prefs.getString(PREF_API_KEY, ""))
+        modelInput.setText(prefs.getString(PREF_MODEL, "gemma4:12b"))
+        promptInput.setText(prefs.getString(PREF_SYSTEM_PROMPT, "Transcribe the audio exactly. Output only the spoken words, no commentary."))
     }
 }
