@@ -40,10 +40,12 @@ class OverlayService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        WysawygLogger.init(this)
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         audioRecorder = AudioRecorder(this)
         ollamaClient = OllamaClient(this)
         createNotificationChannel()
+        WysawygLogger.i("Overlay service created")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
@@ -131,15 +133,17 @@ class OverlayService : Service() {
         if (isRecording) {
             isRecording = false
             button.setImageResource(android.R.drawable.ic_btn_speak_now)
+            WysawygLogger.i("Overlay recording stopped by user")
             stopAndTranscribe()
         } else {
             isRecording = true
             button.setImageResource(android.R.drawable.ic_media_pause)
             try {
+                WysawygLogger.i("Overlay recording started")
                 audioRecorder.start()
                 Toast.makeText(this, "Recording...", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to start recording", e)
+                WysawygLogger.e("Failed to start overlay recording", e)
                 isRecording = false
                 button.setImageResource(android.R.drawable.ic_btn_speak_now)
                 Toast.makeText(this, "Recording failed", Toast.LENGTH_SHORT).show()
@@ -151,7 +155,9 @@ class OverlayService : Service() {
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val wavBytes = audioRecorder.stop()
+                WysawygLogger.i("Overlay audio captured: ${wavBytes.size} bytes")
                 val text = ollamaClient.transcribe(wavBytes)
+                WysawygLogger.i("Overlay transcription: $text")
                 withContext(Dispatchers.Main) {
                     if (text.isNotBlank()) {
                         TextInjectorService.pendingText = text
@@ -162,7 +168,7 @@ class OverlayService : Service() {
                     }
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Transcription failed", e)
+                WysawygLogger.e("Overlay transcription failed", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@OverlayService, "Transcription failed: ${e.message}", Toast.LENGTH_LONG).show()
                 }

@@ -62,10 +62,22 @@
         android:text="@string/stop_overlay" />
 
     <Button
-        android:id="@+id/openAccessibilityButton"
+        android:id="@+id/enableKeyboardButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="@string/enable_accessibility" />
+        android:text="Enable WYSAWYG Keyboard" />
+
+    <Button
+        android:id="@+id/shareLogButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Share Log" />
+
+    <Button
+        android:id="@+id/clearLogButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Clear Log" />
 
 </LinearLayout>

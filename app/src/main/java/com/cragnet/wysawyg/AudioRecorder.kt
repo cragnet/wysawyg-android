@@ -27,6 +27,7 @@ class AudioRecorder(private val context: Context) {
     fun start() {
         val minBufferSize = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
         val bufferSize = minBufferSize.coerceAtLeast(4096)
+        WysawygLogger.i("AudioRecorder.start: minBufferSize=$minBufferSize bufferSize=$bufferSize")
 
         audioRecord = AudioRecord(
             MediaRecorder.AudioSource.MIC,
@@ -37,6 +38,7 @@ class AudioRecorder(private val context: Context) {
         )
 
         if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
+            WysawygLogger.e("AudioRecord failed to initialize")
             throw IllegalStateException("AudioRecord not initialized")
         }
 
