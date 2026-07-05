@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">FlowClone</string>
+    <string name="app_name">Wysawyg</string>
     <string name="accessibility_service_description">Inserts transcribed text from Ollama into the currently focused text field.</string>
     <string name="start_overlay">Start Overlay</string>
     <string name="stop_overlay">Stop Overlay</string>

@@ -1,4 +1,4 @@
-package com.cragnet.flowclone
+package com.cragnet.wysawyg
 
 import android.accessibilityservice.AccessibilityService
 import android.content.Context
@@ -18,7 +18,7 @@ class TextInjectorService : AccessibilityService() {
         fun inject(context: Context, text: String) {
             pendingText = text
             if (instance == null) {
-                Toast.makeText(context, "Enable FlowClone accessibility service to insert text automatically", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "Enable Wysawyg accessibility service to insert text automatically", Toast.LENGTH_LONG).show()
                 val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
                 clipboard.setPrimaryClip(android.content.ClipData.newPlainText("dictation", text))
             } else {

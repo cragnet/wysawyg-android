@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = "com.cragnet.flowclone"
+    namespace = "com.cragnet.wysawyg"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.cragnet.flowclone"
+        applicationId = "com.cragnet.wysawyg"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
