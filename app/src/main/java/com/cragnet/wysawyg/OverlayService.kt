@@ -9,7 +9,6 @@ import android.content.Intent
 import android.graphics.PixelFormat
 import android.os.Build
 import android.os.IBinder
-import android.util.Log
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.MotionEvent
@@ -32,14 +31,36 @@ class OverlayService : Service() {
     private lateinit var ollamaClient: OllamaClient
     private var isRecording = false
 
+    private lateinit var cancelButton: ImageButton
+    private lateinit var acceptButton: ImageButton
+    private lateinit var waveformView: WaveformView
+
     companion object {
         private const val CHANNEL_ID = "wysawyg_overlay"
         private const val NOTIFICATION_ID = 1
-        private const val TAG = "OverlayService"
+        private var visible = false
+        private var instance: OverlayService? = null
+
+        fun setVisible(show: Boolean) {
+            val service = instance
+            if (service == null) {
+                visible = show
+                return
+            }
+            service.runOnMain {
+                if (show) {
+                    service.showOverlay()
+                } else {
+                    service.hideOverlay()
+                }
+                visible = show
+            }
+        }
     }
 
     override fun onCreate() {
         super.onCreate()
+        instance = this
         WysawygLogger.init(this)
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         audioRecorder = AudioRecorder(this)
@@ -51,11 +72,29 @@ class OverlayService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val notification = buildNotification()
         startForeground(NOTIFICATION_ID, notification)
-        showOverlay()
+        if (visible || TextInjectorService.focusedEditableNode != null) {
+            showOverlay()
+        } else {
+            WysawygLogger.i("Overlay hidden: no focused text field")
+        }
         return START_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        hideOverlay()
+        instance = null
+        super.onDestroy()
+    }
+
+    private fun runOnMain(block: () -> Unit) {
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            block()
+        } else {
+            android.os.Handler(android.os.Looper.getMainLooper()).post(block)
+        }
+    }
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -77,18 +116,34 @@ class OverlayService : Service() {
             .build()
     }
 
+    private fun hideOverlay() {
+        overlayView?.let {
+            try {
+                windowManager.removeView(it)
+            } catch (e: Exception) {
+                WysawygLogger.e("Error removing overlay", e)
+            }
+        }
+        overlayView = null
+    }
+
     private fun showOverlay() {
-        if (overlayView != null) return
+        if (overlayView != null) {
+            overlayView?.visibility = View.VISIBLE
+            return
+        }
 
         overlayView = LayoutInflater.from(this).inflate(R.layout.overlay_button, null)
-        val button = overlayView!!.findViewById<ImageButton>(R.id.recordButton)
+        cancelButton = overlayView!!.findViewById(R.id.cancelButton)
+        acceptButton = overlayView!!.findViewById(R.id.acceptButton)
+        waveformView = overlayView!!.findViewById(R.id.waveformView)
 
         params = WindowManager.LayoutParams(
             WindowManager.LayoutParams.WRAP_CONTENT,
             WindowManager.LayoutParams.WRAP_CONTENT,
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
             else WindowManager.LayoutParams.TYPE_PHONE,
-            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
+            WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.TOP or Gravity.START
@@ -98,60 +153,78 @@ class OverlayService : Service() {
 
         windowManager.addView(overlayView, params)
 
-        var initialX = 0
-        var initialY = 0
-        var touchX = 0f
-        var touchY = 0f
+        setIdleState()
 
-        button.setOnTouchListener { _, event ->
-            when (event.action) {
-                MotionEvent.ACTION_DOWN -> {
-                    initialX = params.x
-                    initialY = params.y
-                    touchX = event.rawX
-                    touchY = event.rawY
-                    true
-                }
-                MotionEvent.ACTION_MOVE -> {
-                    params.x = initialX + (event.rawX - touchX).toInt()
-                    params.y = initialY + (event.rawY - touchY).toInt()
-                    windowManager.updateViewLayout(overlayView, params)
-                    true
-                }
-                MotionEvent.ACTION_UP -> {
-                    if (kotlin.math.abs(event.rawX - touchX) < 20 && kotlin.math.abs(event.rawY - touchY) < 20) {
-                        toggleRecording(button)
-                    }
-                    true
-                }
-                else -> false
+        makeDraggable(overlayView!!)
+
+        cancelButton.setOnClickListener {
+            if (isRecording) {
+                cancelRecording()
+            } else {
+                hideOverlay()
+            }
+        }
+
+        acceptButton.setOnClickListener {
+            if (isRecording) {
+                stopAndTranscribe()
+            }
+        }
+
+        waveformView.setOnClickListener {
+            if (!isRecording) {
+                startRecording()
+            } else {
+                stopAndTranscribe()
             }
         }
     }
 
-    private fun toggleRecording(button: ImageButton) {
-        if (isRecording) {
-            isRecording = false
-            button.setImageResource(android.R.drawable.ic_btn_speak_now)
-            WysawygLogger.i("Overlay recording stopped by user")
-            stopAndTranscribe()
-        } else {
-            isRecording = true
-            button.setImageResource(android.R.drawable.ic_media_pause)
-            try {
-                WysawygLogger.i("Overlay recording started")
-                audioRecorder.start()
-                Toast.makeText(this, "Recording...", Toast.LENGTH_SHORT).show()
-            } catch (e: Exception) {
-                WysawygLogger.e("Failed to start overlay recording", e)
-                isRecording = false
-                button.setImageResource(android.R.drawable.ic_btn_speak_now)
-                Toast.makeText(this, "Recording failed", Toast.LENGTH_SHORT).show()
-            }
+    private fun setIdleState() {
+        isRecording = false
+        waveformView.stopAnimation()
+        acceptButton.setImageResource(android.R.drawable.ic_btn_speak_now)
+        acceptButton.contentDescription = "Record"
+        waveformView.alpha = 0.5f
+    }
+
+    private fun setRecordingState() {
+        isRecording = true
+        waveformView.startAnimation()
+        acceptButton.setImageResource(android.R.drawable.ic_menu_save)
+        acceptButton.contentDescription = "Accept"
+        waveformView.alpha = 1.0f
+    }
+
+    private fun startRecording() {
+        try {
+            audioRecorder.start()
+            setRecordingState()
+            WysawygLogger.i("Overlay recording started")
+            Toast.makeText(this, "Recording...", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            WysawygLogger.e("Failed to start overlay recording", e)
+            setIdleState()
+            Toast.makeText(this, "Recording failed", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun cancelRecording() {
+        try {
+            audioRecorder.stop()
+            WysawygLogger.i("Overlay recording cancelled")
+        } catch (e: Exception) {
+            WysawygLogger.e("Error cancelling recording", e)
+        }
+        setIdleState()
+        Toast.makeText(this, "Cancelled", Toast.LENGTH_SHORT).show()
     }
 
     private fun stopAndTranscribe() {
+        if (!isRecording) return
+        isRecording = false
+        waveformView.stopAnimation()
+
         CoroutineScope(Dispatchers.IO).launch {
             try {
                 val wavBytes = audioRecorder.stop()
@@ -165,19 +238,54 @@ class OverlayService : Service() {
                     } else {
                         Toast.makeText(this@OverlayService, "No transcription", Toast.LENGTH_SHORT).show()
                     }
+                    setIdleState()
                 }
             } catch (e: Exception) {
                 WysawygLogger.e("Overlay transcription failed", e)
                 withContext(Dispatchers.Main) {
                     Toast.makeText(this@OverlayService, "Transcription failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    setIdleState()
                 }
             }
         }
     }
 
-    override fun onDestroy() {
-        overlayView?.let { windowManager.removeView(it) }
-        overlayView = null
-        super.onDestroy()
+    private fun makeDraggable(view: View) {
+        var initialX = 0
+        var initialY = 0
+        var touchX = 0f
+        var touchY = 0f
+        var dragging = false
+
+        view.setOnTouchListener { _, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    initialX = params.x
+                    initialY = params.y
+                    touchX = event.rawX
+                    touchY = event.rawY
+                    dragging = false
+                    true
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val dx = event.rawX - touchX
+                    val dy = event.rawY - touchY
+                    if (kotlin.math.abs(dx) > 10 || kotlin.math.abs(dy) > 10) {
+                        dragging = true
+                        params.x = initialX + dx.toInt()
+                        params.y = initialY + dy.toInt()
+                        windowManager.updateViewLayout(view, params)
+                    }
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    if (!dragging) {
+                        view.performClick()
+                    }
+                    true
+                }
+                else -> false
+            }
+        }
     }
 }
