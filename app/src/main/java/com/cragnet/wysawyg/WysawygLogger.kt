@@ -13,10 +13,10 @@ object WysawygLogger {
     private const val MAX_LINES = 5000
     private var defaultUncaughtExceptionHandler: Thread.UncaughtExceptionHandler? = null
     private var logFile: File? = null
-    private var defaultUncaughtExceptionHandler: Thread.UncaughtExceptionHandler? = null
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.UK)
 
     fun init(context: Context) {
+        defaultUncaughtExceptionHandler = Thread.getDefaultUncaughtExceptionHandler()
         logFile = File(context.filesDir, "wysawyg.log")
         logFile?.let {
             if (!it.exists()) it.createNewFile()
@@ -28,7 +28,6 @@ object WysawygLogger {
             defaultUncaughtExceptionHandler?.uncaughtException(thread, throwable)
         }
     }
-
     fun d(msg: String) {
         Log.d(TAG, msg)
         append("D", msg)
