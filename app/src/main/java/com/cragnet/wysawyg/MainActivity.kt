@@ -64,6 +64,10 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
         }
 
+        findViewById<Button>(R.id.viewLogButton).setOnClickListener {
+            startActivity(Intent(this, LogActivity::class.java))
+        }
+
         findViewById<Button>(R.id.shareLogButton).setOnClickListener {
             shareLog()
         }
