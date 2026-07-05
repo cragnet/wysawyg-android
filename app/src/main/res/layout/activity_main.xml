@@ -92,4 +92,17 @@
         android:layout_height="wrap_content"
         android:text="Clear Log" />
 
+    <Button
+        android:id="@+id/exportSettingsButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="Export Settings" />
+
+    <Button
+        android:id="@+id/importSettingsButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Import Settings" />
+
 </LinearLayout>

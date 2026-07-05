@@ -31,11 +31,14 @@ class MainActivity : AppCompatActivity() {
     private lateinit var modelInput: EditText
     private lateinit var promptInput: EditText
 
+    private lateinit var settingsExporter: SettingsExporter
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         WysawygLogger.init(this)
+        settingsExporter = SettingsExporter(this)
 
         alarmaUrlInput = findViewById(R.id.alarmaUrl)
         apiKeyInput = findViewById(R.id.apiKey)
@@ -67,6 +70,15 @@ class MainActivity : AppCompatActivity() {
 
         findViewById<Button>(R.id.clearLogButton).setOnClickListener {
             WysawygLogger.clear(this)
+        }
+
+        findViewById<Button>(R.id.exportSettingsButton).setOnClickListener {
+            saveSettings()
+            settingsExporter.promptExport()
+        }
+
+        findViewById<Button>(R.id.importSettingsButton).setOnClickListener {
+            settingsExporter.promptImport()
         }
 
         loadSettings()
