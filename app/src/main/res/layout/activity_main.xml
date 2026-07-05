@@ -74,10 +74,16 @@
         android:text="@string/stop_overlay" />
 
     <Button
+        android:id="@+id/enableAccessibilityButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Enable Accessibility Service" />
+
+    <Button
         android:id="@+id/enableKeyboardButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_marginTop="8dp"
         android:text="Enable WYSAWYG Keyboard" />
 
     <Button

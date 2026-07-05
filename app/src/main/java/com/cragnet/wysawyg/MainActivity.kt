@@ -60,6 +60,10 @@ class MainActivity : AppCompatActivity() {
             stopService(Intent(this, OverlayService::class.java))
         }
 
+        findViewById<Button>(R.id.enableAccessibilityButton).setOnClickListener {
+            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        }
+
         findViewById<Button>(R.id.enableKeyboardButton).setOnClickListener {
             startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
         }
