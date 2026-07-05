@@ -4,6 +4,7 @@ import android.accessibilityservice.AccessibilityService
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.provider.Settings
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.widget.Toast
@@ -21,7 +22,7 @@ class TextInjectorService : AccessibilityService() {
                 WysawygLogger.w("Accessibility service not enabled — copying to clipboard")
                 copyToClipboard(context, text)
                 Toast.makeText(context, "Enable Wysawyg accessibility service to insert text automatically", Toast.LENGTH_LONG).show()
-                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                context.startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
             } else {
                 instance?.performInjection(text)
             }
