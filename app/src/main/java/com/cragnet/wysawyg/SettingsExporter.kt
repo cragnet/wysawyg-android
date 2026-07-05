@@ -5,6 +5,7 @@ import android.net.Uri
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import org.json.JSONTokener
 import org.json.JSONObject
 import java.io.InputStream
 import java.io.InputStreamReader
@@ -37,12 +38,11 @@ class SettingsExporter(private val activity: AppCompatActivity) {
     private fun exportToUri(uri: Uri) {
         try {
             val prefs = activity.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE)
-            val json = JSONObject().apply {
-                put(MainActivity.PREF_ALARMA_URL, prefs.getString(MainActivity.PREF_ALARMA_URL, "") ?: "")
-                put(MainActivity.PREF_API_KEY, prefs.getString(MainActivity.PREF_API_KEY, "") ?: "")
-                put(MainActivity.PREF_MODEL, prefs.getString(MainActivity.PREF_MODEL, "") ?: "")
-                put(MainActivity.PREF_SYSTEM_PROMPT, prefs.getString(MainActivity.PREF_SYSTEM_PROMPT, "") ?: "")
-            }
+            val json = JSONObject()
+            json.put(MainActivity.PREF_ALARMA_URL, prefs.getString(MainActivity.PREF_ALARMA_URL, "") ?: "")
+            json.put(MainActivity.PREF_API_KEY, prefs.getString(MainActivity.PREF_API_KEY, "") ?: "")
+            json.put(MainActivity.PREF_MODEL, prefs.getString(MainActivity.PREF_MODEL, "") ?: "")
+            json.put(MainActivity.PREF_SYSTEM_PROMPT, prefs.getString(MainActivity.PREF_SYSTEM_PROMPT, "") ?: "")
 
             val out: OutputStream? = activity.contentResolver.openOutputStream(uri)
             if (out != null) {
@@ -61,7 +61,7 @@ class SettingsExporter(private val activity: AppCompatActivity) {
     private fun importFromUri(uri: Uri) {
         try {
             val ins: InputStream? = activity.contentResolver.openInputStream(uri)
-            val jsonString = if (ins != null) {
+            val jsonString: String = if (ins != null) {
                 InputStreamReader(ins).use { reader ->
                     reader.readText()
                 }
@@ -69,7 +69,7 @@ class SettingsExporter(private val activity: AppCompatActivity) {
                 throw RuntimeException("Empty file")
             }
 
-            val json = JSONObject(jsonString as Any)
+            val json: JSONObject = JSONTokener(jsonString).nextValue() as JSONObject
             activity.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
                 putString(MainActivity.PREF_ALARMA_URL, json.optString(MainActivity.PREF_ALARMA_URL, "http://alarma.local:11434/api/chat"))
                 putString(MainActivity.PREF_API_KEY, json.optString(MainActivity.PREF_API_KEY, ""))
