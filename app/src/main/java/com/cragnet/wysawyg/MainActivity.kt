@@ -177,6 +177,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun defaultModel(url: String): String {
-        return if (url.trimEnd('/').contains("/v1")) "whisper-1" else "gemma4:12b"
+        return if (url.trimEnd('/').contains("/v1")) "gemma4:e4b" else "gemma4:12b"
     }
 }

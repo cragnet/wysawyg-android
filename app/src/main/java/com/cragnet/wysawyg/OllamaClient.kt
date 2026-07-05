@@ -3,15 +3,11 @@ package com.cragnet.wysawyg
 import android.content.Context
 import android.util.Base64
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.File
 import java.util.concurrent.TimeUnit
 
 class OllamaClient(private val context: Context) {
@@ -31,30 +27,47 @@ class OllamaClient(private val context: Context) {
 
         WysawygLogger.i("OllamaClient transcribe: url=$url model=$model audio=${wavBytes.size} bytes apiKeyPresent=${apiKey.isNotBlank()}")
 
-        return@withContext if (url.trimEnd('/').contains("/v1")) {
-            transcribeOpenAICompatible(url, model, wavBytes, apiKey)
-        } else {
-            transcribeOllamaNative(url, model, systemPrompt, wavBytes, apiKey)
+        val base = url.trimEnd('/')
+        return@withContext when {
+            base.contains("/v1") -> transcribeViaChatCompletions(base, model, systemPrompt, wavBytes, apiKey)
+            else -> transcribeOllamaNative(base, model, systemPrompt, wavBytes, apiKey)
         }
     }
 
-    private fun transcribeOpenAICompatible(baseUrl: String, model: String, wavBytes: ByteArray, apiKey: String): String {
-        val endpoint = baseUrl.trimEnd('/') + "/audio/transcriptions"
-        WysawygLogger.i("OpenAI-compatible POST $endpoint model=$model")
+    private fun transcribeViaChatCompletions(baseUrl: String, model: String, systemPrompt: String, wavBytes: ByteArray, apiKey: String): String {
+        val endpoint = baseUrl + "/chat/completions"
+        WysawygLogger.i("Chat-completions POST $endpoint model=$model")
 
-        val tempFile = File.createTempFile("wysawyg", ".wav", context.cacheDir)
-        tempFile.writeBytes(wavBytes)
+        val base64Audio = Base64.encodeToString(wavBytes, Base64.NO_WRAP)
 
-        val requestBody = MultipartBody.Builder()
-            .setType(MultipartBody.FORM)
-            .addFormDataPart("model", model)
-            .addFormDataPart("file", "audio.wav", tempFile.asRequestBody("audio/wav".toMediaTypeOrNull()))
-            .addFormDataPart("response_format", "json")
-            .build()
+        val messages = JSONArray().apply {
+            put(JSONObject().apply {
+                put("role", "system")
+                put("content", systemPrompt)
+            })
+            put(JSONObject().apply {
+                put("role", "user")
+                put("content", "Transcribe this audio.")
+                put("images", JSONArray().apply { put(base64Audio) })
+            })
+        }
+
+        val json = JSONObject().apply {
+            put("model", model)
+            put("stream", false)
+            put("messages", messages)
+            put("options", JSONObject().apply {
+                put("temperature", 0.1)
+                put("num_predict", 256)
+            })
+        }
+
+        val body = json.toString().toRequestBody("application/json".toMediaType())
+        WysawygLogger.d("Chat-completions request body length: ${body.contentLength()} bytes")
 
         val requestBuilder = Request.Builder()
             .url(endpoint)
-            .post(requestBody)
+            .post(body)
 
         if (apiKey.isNotBlank()) {
             requestBuilder.header("Authorization", "Bearer $apiKey")
@@ -62,23 +75,30 @@ class OllamaClient(private val context: Context) {
 
         val request = requestBuilder.build()
         val response = client.newCall(request).execute()
-        tempFile.delete()
-
         val responseBody = response.body?.string() ?: throw RuntimeException("Empty response")
-        WysawygLogger.i("OpenAI-compatible response code: ${response.code}")
+
+        WysawygLogger.i("Chat-completions response code: ${response.code}")
 
         if (!response.isSuccessful) {
-            WysawygLogger.e("OpenAI-compatible error ${response.code}: $responseBody")
-            throw RuntimeException("OpenAI-compatible error ${response.code}: $responseBody")
+            WysawygLogger.e("Chat-completions error ${response.code}: $responseBody")
+            throw RuntimeException("Chat-completions error ${response.code}: $responseBody")
         }
 
         val parsed = JSONObject(responseBody)
-        WysawygLogger.d("OpenAI-compatible response body: $responseBody")
-        return parsed.optString("text", "").trim()
+        WysawygLogger.d("Chat-completions response body: $responseBody")
+
+        val choices = parsed.optJSONArray("choices")
+        if (choices != null && choices.length() > 0) {
+            return choices.getJSONObject(0).getJSONObject("message").optString("content", "").trim()
+        }
+
+        // Fallback for native-style response
+        return parsed.optJSONObject("message")?.optString("content", "")?.trim()
+            ?: parsed.optString("response", "").trim()
     }
 
     private fun transcribeOllamaNative(baseUrl: String, model: String, systemPrompt: String, wavBytes: ByteArray, apiKey: String): String {
-        val endpoint = baseUrl.trimEnd('/')
+        val endpoint = baseUrl
         WysawygLogger.i("Ollama native POST $endpoint model=$model")
 
         val base64Audio = Base64.encodeToString(wavBytes, Base64.NO_WRAP)
