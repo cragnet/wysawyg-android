@@ -87,6 +87,12 @@
         android:text="Share Log" />
 
     <Button
+        android:id="@+id/viewLogButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="View Log" />
+
+    <Button
         android:id="@+id/clearLogButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

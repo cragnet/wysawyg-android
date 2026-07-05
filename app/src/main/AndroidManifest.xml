@@ -31,6 +31,10 @@
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
+        <activity
+            android:name=".LogActivity"
+            android:exported="false" />
+
         <service
             android:name=".WysawygKeyboardService"
             android:enabled="true"
