@@ -5,4 +5,4 @@
     android:accessibilityEventTypes="typeWindowContentChanged|typeViewFocused"
     android:accessibilityFlags="flagRetrieveInteractiveWindows|flagReportViewIds"
     android:canRetrieveWindowContent="true"
-    android:settingsActivity="com.cragnet.flowclone.MainActivity" />
+    android:settingsActivity="com.cragnet.wysawyg.MainActivity" />

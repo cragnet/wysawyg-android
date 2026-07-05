@@ -1,4 +1,4 @@
-package com.cragnet.flowclone
+package com.cragnet.wysawyg
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -33,7 +33,7 @@ class OverlayService : Service() {
     private var isRecording = false
 
     companion object {
-        private const val CHANNEL_ID = "flowclone_overlay"
+        private const val CHANNEL_ID = "wysawyg_overlay"
         private const val NOTIFICATION_ID = 1
         private const val TAG = "OverlayService"
     }
@@ -59,7 +59,7 @@ class OverlayService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 CHANNEL_ID,
-                "FlowClone Overlay",
+                "Wysawyg Overlay",
                 NotificationManager.IMPORTANCE_LOW
             )
             getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
@@ -68,7 +68,7 @@ class OverlayService : Service() {
 
     private fun buildNotification(): Notification {
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("FlowClone")
+            .setContentTitle("Wysawyg")
             .setContentText("Dictation overlay active")
             .setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setOngoing(true)

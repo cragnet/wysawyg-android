@@ -1,4 +1,4 @@
-package com.cragnet.flowclone
+package com.cragnet.wysawyg
 
 import android.content.Context
 import android.util.Base64
@@ -26,7 +26,7 @@ class OllamaClient(private val context: Context) {
     }
 
     suspend fun transcribe(wavBytes: ByteArray): String = withContext(Dispatchers.IO) {
-        val prefs = context.getSharedPreferences("flowclone", Context.MODE_PRIVATE)
+        val prefs = context.getSharedPreferences("wysawyg", Context.MODE_PRIVATE)
         val url = prefs.getString("ollama_url", "http://alarma.local:11434/api/chat")!!
         val model = prefs.getString("model", "gemma4:12b")!!
         val systemPrompt = prefs.getString("system_prompt", "Transcribe the audio exactly. Output only the spoken words, no commentary.")!!

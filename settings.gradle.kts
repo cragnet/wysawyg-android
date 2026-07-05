@@ -13,5 +13,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "FlowClone"
+rootProject.name = "Wysawyg"
 include(":app")

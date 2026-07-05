@@ -1,4 +1,4 @@
-package com.cragnet.flowclone
+package com.cragnet.wysawyg
 
 import android.Manifest
 import android.content.Intent
@@ -103,7 +103,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveSettings() {
-        getSharedPreferences("flowclone", MODE_PRIVATE).edit().apply {
+        getSharedPreferences("wysawyg", MODE_PRIVATE).edit().apply {
             putString("ollama_url", urlInput.text.toString().ifBlank { "http://alarma.local:11434/api/chat" })
             putString("model", modelInput.text.toString().ifBlank { "gemma4:12b" })
             putString("system_prompt", promptInput.text.toString())
@@ -112,7 +112,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadSettings() {
-        val prefs = getSharedPreferences("flowclone", MODE_PRIVATE)
+        val prefs = getSharedPreferences("wysawyg", MODE_PRIVATE)
         urlInput.setText(prefs.getString("ollama_url", "http://alarma.local:11434/api/chat"))
         modelInput.setText(prefs.getString("model", "gemma4:12b"))
         promptInput.setText(prefs.getString("system_prompt", "Transcribe the audio exactly. Output only the spoken words, no commentary."))
