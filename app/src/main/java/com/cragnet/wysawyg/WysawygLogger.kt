@@ -11,7 +11,9 @@ object WysawygLogger {
 
     private const val TAG = "WYSAWYG"
     private const val MAX_LINES = 5000
+    private var defaultUncaughtExceptionHandler: Thread.UncaughtExceptionHandler? = null
     private var logFile: File? = null
+    private var defaultUncaughtExceptionHandler: Thread.UncaughtExceptionHandler? = null
     private val dateFormat = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.UK)
 
     fun init(context: Context) {
@@ -19,6 +21,11 @@ object WysawygLogger {
         logFile?.let {
             if (!it.exists()) it.createNewFile()
             i("Logger initialized: ${it.absolutePath}")
+        }
+        Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+            e("Uncaught exception on thread ${thread.name}", throwable)
+            // Preserve default behavior so the app still crashes and restarts normally.
+            defaultUncaughtExceptionHandler?.uncaughtException(thread, throwable)
         }
     }
 
