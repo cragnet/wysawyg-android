@@ -29,9 +29,13 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        WysawygLogger.init(this)
+
         urlInput = findViewById(R.id.ollamaUrl)
         modelInput = findViewById(R.id.modelName)
         promptInput = findViewById(R.id.systemPrompt)
+
+        WysawygLogger.i("MainActivity started")
 
         findViewById<Button>(R.id.startOverlayButton).setOnClickListener {
             saveSettings()
@@ -46,8 +50,16 @@ class MainActivity : AppCompatActivity() {
             stopService(Intent(this, OverlayService::class.java))
         }
 
-        findViewById<Button>(R.id.openAccessibilityButton).setOnClickListener {
-            startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+        findViewById<Button>(R.id.enableKeyboardButton).setOnClickListener {
+            startActivity(Intent(Settings.ACTION_INPUT_METHOD_SETTINGS))
+        }
+
+        findViewById<Button>(R.id.shareLogButton).setOnClickListener {
+            shareLog()
+        }
+
+        findViewById<Button>(R.id.clearLogButton).setOnClickListener {
+            WysawygLogger.clear(this)
         }
 
         loadSettings()
@@ -100,6 +112,16 @@ class MainActivity : AppCompatActivity() {
         } else {
             startService(intent)
         }
+    }
+
+    private fun shareLog() {
+        val logText = WysawygLogger.getLogText(this)
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_SUBJECT, "WYSAWYG log")
+            putExtra(Intent.EXTRA_TEXT, logText)
+        }
+        startActivity(Intent.createChooser(shareIntent, "Share log"))
     }
 
     private fun saveSettings() {

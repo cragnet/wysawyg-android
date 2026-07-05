@@ -32,16 +32,16 @@
             android:foregroundServiceType="microphone" />
 
         <service
-            android:name=".TextInjectorService"
+            android:name=".WysawygKeyboardService"
             android:enabled="true"
             android:exported="true"
-            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            android:permission="android.permission.BIND_INPUT_METHOD">
             <intent-filter>
-                <action android:name="android.accessibilityservice.AccessibilityService" />
+                <action android:name="android.view.InputMethod" />
             </intent-filter>
             <meta-data
-                android:name="android.accessibilityservice"
-                android:resource="@xml/accessibility_service_config" />
+                android:name="android.view.im"
+                android:resource="@xml/method" />
         </service>
     </application>
 </manifest>

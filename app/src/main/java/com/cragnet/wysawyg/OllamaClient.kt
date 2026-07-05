@@ -31,6 +31,8 @@ class OllamaClient(private val context: Context) {
         val model = prefs.getString("model", "gemma4:12b")!!
         val systemPrompt = prefs.getString("system_prompt", "Transcribe the audio exactly. Output only the spoken words, no commentary.")!!
 
+        WysawygLogger.i("OllamaClient transcribe: url=$url model=$model audio=${wavBytes.size} bytes")
+
         val base64Audio = Base64.encodeToString(wavBytes, Base64.NO_WRAP)
 
         val messages = JSONArray().apply {
@@ -57,21 +59,23 @@ class OllamaClient(private val context: Context) {
         }
 
         val body = json.toString().toRequestBody("application/json".toMediaType())
+        WysawygLogger.d("Ollama request body length: ${body.contentLength()} bytes")
         val request = Request.Builder()
             .url(url)
             .post(body)
             .build()
 
-        Log.d(TAG, "Sending ${wavBytes.size} bytes to $url")
         val response = client.newCall(request).execute()
         val responseBody = response.body?.string() ?: throw RuntimeException("Empty response")
+        WysawygLogger.i("Ollama response code: ${response.code}")
 
         if (!response.isSuccessful) {
+            WysawygLogger.e("Ollama error ${response.code}: $responseBody")
             throw RuntimeException("Ollama error ${response.code}: $responseBody")
         }
 
         val parsed = JSONObject(responseBody)
-        Log.d(TAG, "Response: $responseBody")
+        WysawygLogger.d("Ollama response body: $responseBody")
         return@withContext parsed.getJSONObject("message").optString("content", "").trim()
     }
 }
