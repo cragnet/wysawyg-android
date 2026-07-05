@@ -2,10 +2,13 @@ package com.cragnet.wysawyg
 
 import android.content.Context
 import android.net.Uri
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONObject
+import java.io.InputStream
 import java.io.InputStreamReader
+import java.io.OutputStream
 import java.io.OutputStreamWriter
 
 class SettingsExporter(private val activity: AppCompatActivity) {
@@ -41,26 +44,32 @@ class SettingsExporter(private val activity: AppCompatActivity) {
                 put(MainActivity.PREF_SYSTEM_PROMPT, prefs.getString(MainActivity.PREF_SYSTEM_PROMPT, "") ?: "")
             }
 
-            activity.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                OutputStreamWriter(outputStream).use { writer ->
+            val out: OutputStream? = activity.contentResolver.openOutputStream(uri)
+            if (out != null) {
+                OutputStreamWriter(out).use { writer ->
                     writer.write(json.toString(2))
                 }
             }
             WysawygLogger.i("Settings exported to $uri")
-            android.widget.Toast.makeText(activity, "Settings exported", android.widget.Toast.LENGTH_SHORT).show()
+            Toast.makeText(activity, "Settings exported", Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             WysawygLogger.e("Failed to export settings", e)
-            android.widget.Toast.makeText(activity, "Export failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 
     private fun importFromUri(uri: Uri) {
         try {
-            val jsonString = activity.contentResolver.openInputStream(uri)?.use { inputStream -
-                InputStreamReader(inputStream).readText()
-            } ?: throw RuntimeException("Empty file")
+            val ins: InputStream? = activity.contentResolver.openInputStream(uri)
+            val jsonString = if (ins != null) {
+                InputStreamReader(ins).use { reader ->
+                    reader.readText()
+                }
+            } else {
+                throw RuntimeException("Empty file")
+            }
 
-            val json = JSONObject(jsonString)
+            val json = JSONObject(jsonString as Any)
             activity.getSharedPreferences(MainActivity.PREFS_NAME, Context.MODE_PRIVATE).edit().apply {
                 putString(MainActivity.PREF_ALARMA_URL, json.optString(MainActivity.PREF_ALARMA_URL, "http://alarma.local:11434/api/chat"))
                 putString(MainActivity.PREF_API_KEY, json.optString(MainActivity.PREF_API_KEY, ""))
@@ -70,11 +79,11 @@ class SettingsExporter(private val activity: AppCompatActivity) {
             }
 
             WysawygLogger.i("Settings imported from $uri")
-            android.widget.Toast.makeText(activity, "Settings imported — restart app to apply", android.widget.Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, "Settings imported — restart app to apply", Toast.LENGTH_LONG).show()
             activity.recreate()
         } catch (e: Exception) {
             WysawygLogger.e("Failed to import settings", e)
-            android.widget.Toast.makeText(activity, "Import failed: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
+            Toast.makeText(activity, "Import failed: ${e.message}", Toast.LENGTH_LONG).show()
         }
     }
 }
