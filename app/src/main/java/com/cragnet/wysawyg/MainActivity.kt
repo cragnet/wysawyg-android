@@ -85,6 +85,15 @@ class MainActivity : AppCompatActivity() {
             settingsExporter.promptImport()
         }
 
+        alarmaUrlInput.setOnFocusChangeListener { _, hasFocus ->
+            if (!hasFocus) {
+                val currentModel = modelInput.text.toString()
+                if (currentModel.isBlank()) {
+                    modelInput.setText(defaultModel(alarmaUrlInput.text.toString()))
+                }
+            }
+        }
+
         loadSettings()
     }
 
@@ -151,7 +160,7 @@ class MainActivity : AppCompatActivity() {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().apply {
             putString(PREF_ALARMA_URL, alarmaUrlInput.text.toString().ifBlank { "http://alarma.local:11434/api/chat" })
             putString(PREF_API_KEY, apiKeyInput.text.toString())
-            putString(PREF_MODEL, modelInput.text.toString().ifBlank { "gemma4:12b" })
+            putString(PREF_MODEL, modelInput.text.toString().ifBlank { defaultModel(alarmaUrlInput.text.toString()) })
             putString(PREF_SYSTEM_PROMPT, promptInput.text.toString())
             apply()
         }
@@ -160,9 +169,14 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadSettings() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        alarmaUrlInput.setText(prefs.getString(PREF_ALARMA_URL, "http://alarma.local:11434/api/chat"))
+        val url = prefs.getString(PREF_ALARMA_URL, "http://alarma.local:11434/api/chat") ?: "http://alarma.local:11434/api/chat"
+        alarmaUrlInput.setText(url)
         apiKeyInput.setText(prefs.getString(PREF_API_KEY, ""))
-        modelInput.setText(prefs.getString(PREF_MODEL, "gemma4:12b"))
+        modelInput.setText(prefs.getString(PREF_MODEL, defaultModel(url)))
         promptInput.setText(prefs.getString(PREF_SYSTEM_PROMPT, "Transcribe the audio exactly. Output only the spoken words, no commentary."))
+    }
+
+    private fun defaultModel(url: String): String {
+        return if (url.trimEnd('/').contains("/v1")) "whisper-1" else "gemma4:12b"
     }
 }
