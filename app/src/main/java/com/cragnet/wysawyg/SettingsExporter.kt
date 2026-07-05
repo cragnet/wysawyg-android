@@ -1,9 +1,7 @@
 package com.cragnet.wysawyg
 
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
-import android.os.Build
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import org.json.JSONObject
@@ -43,8 +41,8 @@ class SettingsExporter(private val activity: AppCompatActivity) {
                 put(MainActivity.PREF_SYSTEM_PROMPT, prefs.getString(MainActivity.PREF_SYSTEM_PROMPT, "") ?: "")
             }
 
-            activity.contentResolver.openOutputStream(uri)?.use { out ->
-                OutputStreamWriter(out).use { writer ->
+            activity.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                OutputStreamWriter(outputStream).use { writer ->
                     writer.write(json.toString(2))
                 }
             }
@@ -58,8 +56,8 @@ class SettingsExporter(private val activity: AppCompatActivity) {
 
     private fun importFromUri(uri: Uri) {
         try {
-            val jsonString = activity.contentResolver.openInputStream(uri)?.use { stream -
-                InputStreamReader(stream).readText()
+            val jsonString = activity.contentResolver.openInputStream(uri)?.use { inputStream -
+                InputStreamReader(inputStream).readText()
             } ?: throw RuntimeException("Empty file")
 
             val json = JSONObject(jsonString)
