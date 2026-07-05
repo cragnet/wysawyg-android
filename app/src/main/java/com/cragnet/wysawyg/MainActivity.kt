@@ -162,7 +162,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun saveSettings() {
         getSharedPreferences(PREFS_NAME, MODE_PRIVATE).edit().apply {
-            putString(PREF_ALARMA_URL, alarmaUrlInput.text.toString().ifBlank { "http://alarma.local:11434/api/chat" })
+            putString(PREF_ALARMA_URL, alarmaUrlInput.text.toString().ifBlank { "https://ollama.com/api/chat" })
             putString(PREF_API_KEY, apiKeyInput.text.toString())
             putString(PREF_MODEL, modelInput.text.toString().ifBlank { defaultModel(alarmaUrlInput.text.toString()) })
             putString(PREF_SYSTEM_PROMPT, promptInput.text.toString())
@@ -173,7 +173,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadSettings() {
         val prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-        val url = prefs.getString(PREF_ALARMA_URL, "http://alarma.local:11434/api/chat") ?: "http://alarma.local:11434/api/chat"
+        val url = prefs.getString(PREF_ALARMA_URL, "https://ollama.com/api/chat") ?: "https://ollama.com/api/chat"
         alarmaUrlInput.setText(url)
         apiKeyInput.setText(prefs.getString(PREF_API_KEY, ""))
         modelInput.setText(prefs.getString(PREF_MODEL, defaultModel(url)))
@@ -181,6 +181,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun defaultModel(url: String): String {
-        return if (url.trimEnd('/').contains("/v1")) "gemma4:e4b" else "gemma4:12b"
+        return if (url.contains("ollama.com")) "gemma4:e4b" else "gemma4:12b"
     }
 }

@@ -21,7 +21,7 @@
         android:id="@+id/alarmaUrl"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="http://alarma.local:11434/api/chat"
+        android:hint="https://ollama.com/api/chat"
         android:inputType="textUri" />
 
     <TextView
