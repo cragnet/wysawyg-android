@@ -160,7 +160,6 @@ class OverlayService : Service() {
                 WysawygLogger.i("Overlay transcription: $text")
                 withContext(Dispatchers.Main) {
                     if (text.isNotBlank()) {
-                        TextInjectorService.pendingText = text
                         TextInjectorService.inject(this@OverlayService, text)
                         Toast.makeText(this@OverlayService, "Inserted: $text", Toast.LENGTH_LONG).show()
                     } else {
