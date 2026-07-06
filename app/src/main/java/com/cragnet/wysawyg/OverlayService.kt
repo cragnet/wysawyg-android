@@ -143,6 +143,7 @@ class OverlayService : Service() {
             makeDraggable(overlayView!!, overlayParams)
 
             cancelButton.setOnClickListener {
+                WysawygLogger.i("Cancel button clicked")
                 if (isRecording) {
                     cancelRecording()
                 } else {
@@ -152,12 +153,14 @@ class OverlayService : Service() {
             }
 
             acceptButton.setOnClickListener {
+                WysawygLogger.i("Accept button clicked")
                 if (isRecording) {
                     stopAndTranscribe()
                 }
             }
 
             waveformView.setOnClickListener {
+                WysawygLogger.i("Waveform clicked, isRecording=$isRecording")
                 if (!isRecording) {
                     startRecording()
                 } else {
@@ -201,6 +204,7 @@ class OverlayService : Service() {
             makeDraggable(miniTriggerView!!, miniParams)
 
             button.setOnClickListener {
+                WysawygLogger.i("Mini trigger clicked")
                 showOverlay()
             }
             WysawygLogger.i("Mini trigger shown")
@@ -316,12 +320,45 @@ class OverlayService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     if (!dragging) {
-                        view.performClick()
+                        WysawygLogger.i("Touch released on overlay (not drag), delegating click")
+                        dispatchClickToChild(view, event)
                     }
                     true
                 }
                 else -> false
             }
         }
+    }
+
+    private fun dispatchClickToChild(parent: View, event: MotionEvent) {
+        val location = IntArray(2)
+        parent.getLocationOnScreen(location)
+        val x = event.rawX - location[0]
+        val y = event.rawY - location[1]
+        val child = findViewAtPosition(parent, x.toInt(), y.toInt())
+        if (child != null && child.isClickable) {
+            WysawygLogger.i("Dispatching click to child: ${child.contentDescription ?: child.id}")
+            child.performClick()
+        } else {
+            WysawygLogger.i("No clickable child under touch point")
+        }
+    }
+
+    private fun findViewAtPosition(parent: View, x: Int, y: Int): View? {
+        if (parent !is android.view.ViewGroup) {
+            return if (isPointInsideView(parent, x, y)) parent else null
+        }
+        for (i in parent.childCount - 1 downTo 0) {
+            val child = parent.getChildAt(i)
+            if (isPointInsideView(child, x, y)) {
+                val found = findViewAtPosition(child, x - child.left, y - child.top)
+                if (found != null) return found
+            }
+        }
+        return if (isPointInsideView(parent, x, y)) parent else null
+    }
+
+    private fun isPointInsideView(view: View, x: Int, y: Int): Boolean {
+        return x >= view.left && x <= view.right && y >= view.top && y <= view.bottom && view.visibility == View.VISIBLE
     }
 }

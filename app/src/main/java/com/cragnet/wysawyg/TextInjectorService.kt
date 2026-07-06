@@ -49,15 +49,16 @@ class TextInjectorService : AccessibilityService() {
             AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED -> {
                 try {
                     val node = event.source
+                    WysawygLogger.i("Accessibility event: ${AccessibilityEvent.eventTypeToString(event.eventType)}, package=${event.packageName}, editable=${node?.isEditable}")
                     if (node != null && node.isEditable) {
                         focusedEditableNode = node
-                        WysawygLogger.d("Focused editable node: ${node.className} ${node.viewIdResourceName}")
+                        WysawygLogger.i("Focused editable node: ${node.className} ${node.viewIdResourceName}")
                     } else if (node != null && !node.isEditable) {
                         val root = rootInActiveWindow
                         val focused = root?.findFocus(AccessibilityNodeInfo.FOCUS_INPUT)
                         if (focused?.isEditable == true) {
                             focusedEditableNode = focused
-                            WysawygLogger.d("Focused editable node from root: ${focused.className}")
+                            WysawygLogger.i("Focused editable node from root: ${focused.className}")
                         }
                     }
                 } catch (e: Exception) {
@@ -76,6 +77,7 @@ class TextInjectorService : AccessibilityService() {
     }
 
     private fun performInjection(text: String) {
+        WysawygLogger.i("Performing injection for text length=${text.length}")
         var node = focusedEditableNode
         if (node == null) {
             val root = rootInActiveWindow
